@@ -1,0 +1,6 @@
+# Runtime deps for the Vercel Python function (mirror of backend/requirements.txt minus the ASGI server).
+fastapi==0.115.6
+pandas==2.3.3
+numpy==2.2.6
+httpx==0.28.1
+pydantic-settings==2.7.1
