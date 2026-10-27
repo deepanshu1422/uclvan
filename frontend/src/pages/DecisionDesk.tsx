@@ -3,8 +3,8 @@ import {
   Area, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { api, type Decision, type Meta } from "../api";
-import { Card, Legend, Tile, TooltipBox } from "../components";
-import { axisProps, compactMW, fmtDateTime, fmtDay, fmtGW, fmtMW, fmtSignedGW, fmtTime, gridProps } from "../format";
+import { Card, Explainer, Glossary, Legend, Takeaway, Tile, TooltipBox } from "../components";
+import { axisProps, compactMW, fmtDateTime, fmtDay, fmtGW, fmtGWh, fmtMW, fmtSignedGW, fmtTime, gridProps } from "../format";
 import { useApi } from "../useApi";
 
 const C = {
@@ -46,26 +46,35 @@ export function DecisionDesk(props: { meta: Meta; day: string; setDay: (d: strin
 
   return (
     <>
-      <div className="filters">
-        <label className="field">
-          Delivery day
+      <Explainer storageKey="decision" title="How to use this page (30 seconds)">
+        <ol className="steps">
+          <li><b>Pick the delivery day</b> you are buying power for, and the time you make the decision on the day before (default 09:20, around day-ahead gate closure).</li>
+          <li><b>Read the green recommendation box.</b> It gives the wind level to plan against, so the gap to demand can be bought day-ahead or from thermal plant.</li>
+          <li><b>Check the chart.</b> Orange is the forecast you had at decision time, the green band is the realistic range, and blue is what actually happened (hindsight).</li>
+        </ol>
+        <Glossary />
+      </Explainer>
+
+      <div className="filters" role="group" aria-label="Choose delivery day and decision time">
+        <div className="field">
+          <label htmlFor="day">Delivery day</label>
           <span className="stepper">
-            <button aria-label="Previous day" disabled={idx <= 0} onClick={() => setDay(meta.delivery_days[idx - 1])}>‹</button>
-            <select value={day} onChange={(e) => setDay(e.target.value)}>
+            <button aria-label="Previous delivery day" disabled={idx <= 0} onClick={() => setDay(meta.delivery_days[idx - 1])}>‹</button>
+            <select id="day" value={day} onChange={(e) => setDay(e.target.value)}>
               {meta.delivery_days.map((d) => (
                 <option key={d} value={d}>{fmtDay(d)}</option>
               ))}
             </select>
-            <button aria-label="Next day" disabled={idx >= meta.delivery_days.length - 1} onClick={() => setDay(meta.delivery_days[idx + 1])}>›</button>
+            <button aria-label="Next delivery day" disabled={idx >= meta.delivery_days.length - 1} onClick={() => setDay(meta.delivery_days[idx + 1])}>›</button>
           </span>
-        </label>
-        <label className="field">
-          Decision time (D-1, UK)
-          <input type="time" value={gate} onChange={(e) => e.target.value && setGate(e.target.value)} />
-        </label>
+        </div>
+        <div className="field">
+          <label htmlFor="gate">Decision time (day before, UK)</label>
+          <input id="gate" type="time" value={gate} onChange={(e) => e.target.value && setGate(e.target.value)} />
+        </div>
       </div>
 
-      {error && <div className="error">Could not load decision data: {error}</div>}
+      {error && <div className="error" role="alert">Could not load decision data: {error}</div>}
       {data && <DecisionBody d={data} loading={loading} />}
     </>
   );
@@ -94,6 +103,12 @@ function DecisionBody({ d, loading }: { d: Decision; loading: boolean }) {
   const avgP50 = mean(d.points.map((p) => p.p50));
   const avgA = mean(d.actuals_halfhourly.map((p) => p.value));
   const qLo = Math.round(d.band.q_low * 100);
+  // Difference of the rounded figures shown in the tiles, so the sentence and the tiles agree.
+  const cover = avgF != null && avgP10 != null ? (Math.round(avgF / 100) - Math.round(avgP10 / 100)) * 100 : null;
+  const coverGWh =
+    d.summary.forecast_mwh != null && d.summary.p10_mwh != null ? fmtGWh(d.summary.forecast_mwh - d.summary.p10_mwh) : null;
+  // band.mid is the median of (actual - forecast); flip sign to express it as forecast - actual like everywhere else.
+  const janBias = d.band.mid != null ? -d.band.mid : null;
   const qHi = Math.round(d.band.q_high * 100);
 
   const ticks = d.points.filter((_, i) => i % 3 === 0).map((p) => Date.parse(p.t));
@@ -103,7 +118,19 @@ function DecisionBody({ d, loading }: { d: Decision; loading: boolean }) {
   const yAxis = <YAxis tickFormatter={compactMW} width={44} {...axisProps} />;
 
   return (
-    <div className={loading ? "loading" : ""}>
+    <div className={loading ? "loading" : ""} aria-busy={loading}>
+      <Takeaway title={`Recommendation for ${fmtDay(d.delivery_date)}`}>
+        <p>
+          Plan on <strong>{fmtGW(avgP10)} GW</strong> of wind (day average), not the raw forecast of {fmtGW(avgF)} GW.
+          {cover != null && cover > 0 && <> Secure roughly <strong>{fmtGW(cover)} GW more</strong> from the day-ahead market or thermal
+          plant than the raw forecast implies{coverGWh != null && <> (about <strong>{coverGWh} GWh</strong> over the day)</>}.</>}
+        </p>
+        <p className="takeaway-why">
+          Why: in January the forecast typically (median) ran {fmtSignedGW(janBias)} GW above the wind that actually arrived. At the P{qLo} level,
+          actual wind came in higher {100 - qLo}% of the time, so this level leaves the desk short only rarely.
+        </p>
+      </Takeaway>
+
       <p className="lede">
         To buy power for <strong>{fmtDay(d.delivery_date)}</strong>, the decision is taken at{" "}
         <strong>{fmtDateTime(d.decision_time)}</strong>. The latest wind forecast available then was published{" "}
@@ -125,10 +152,11 @@ function DecisionBody({ d, loading }: { d: Decision; loading: boolean }) {
         title="Forecast at decision time vs what happened"
         sub={`Wind generation, MW. Hourly forecast with P${qLo}–P${qHi} range from January's decision-time errors (${d.band.n} hours); actual half-hourly outturn shown for hindsight.`}
         table={<HourlyTable d={d} />}
+        summary={`Line chart for ${fmtDay(d.delivery_date)}. Forecast at decision time averages ${fmtGW(avgF)} GW, bias-adjusted P50 ${fmtGW(avgP50)} GW, plan level P${qLo} ${fmtGW(avgP10)} GW, actual ${fmtGW(avgA)} GW. Use "Show as table" for hourly values.`}
       >
         <Legend items={[
           { label: "Forecast at decision time", color: C.forecast },
-          { label: "Bias-adjusted P50", color: C.p50 },
+          { label: "Bias-adjusted P50", color: C.p50, kind: "dash" },
           { label: `P${qLo}–P${qHi} range`, color: C.p50, kind: "box" },
           { label: "Actual (hindsight)", color: C.actual },
         ]} />
@@ -153,7 +181,7 @@ function DecisionBody({ d, loading }: { d: Decision; loading: boolean }) {
               }}
             />
             <Area dataKey="band" stroke="none" fill={C.p50} fillOpacity={0.14} connectNulls isAnimationActive={false} />
-            <Line dataKey="p50" stroke={C.p50} strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
+            <Line dataKey="p50" stroke={C.p50} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls isAnimationActive={false} />
             <Line dataKey="forecast" stroke={C.forecast} strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
             <Line dataKey="actual" stroke={C.actual} strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
           </ComposedChart>
@@ -163,6 +191,7 @@ function DecisionBody({ d, loading }: { d: Decision; loading: boolean }) {
       <Card
         title="How the forecast for this day evolved"
         sub={`Wind generation, MW. ${d.vintages.length} forecast publishes covered this day. The highlighted one is what the desk saw at decision time; grey lines are earlier and later issues.`}
+        summary={`Line chart of ${d.vintages.length} successive forecast issues for ${fmtDay(d.delivery_date)}, with the one used at decision time highlighted and the actual outturn.`}
       >
         <Legend items={[
           { label: "Forecast used at decision time", color: C.forecast },
@@ -211,9 +240,9 @@ function HourlyTable({ d }: { d: Decision }) {
     <table className="data">
       <thead>
         <tr>
-          <th>Hour (UK)</th><th className="num">Lead (h)</th><th className="num">Forecast MW</th>
-          <th className="num">P{Math.round(d.band.q_low * 100)} MW</th><th className="num">P50 MW</th>
-          <th className="num">P{Math.round(d.band.q_high * 100)} MW</th><th className="num">Actual MW</th><th className="num">Error MW</th>
+          <th scope="col">Hour (UK)</th><th scope="col" className="num">Lead (h)</th><th scope="col" className="num">Forecast MW</th>
+          <th scope="col" className="num">P{Math.round(d.band.q_low * 100)} MW</th><th scope="col" className="num">P50 MW</th>
+          <th scope="col" className="num">P{Math.round(d.band.q_high * 100)} MW</th><th scope="col" className="num">Actual MW</th><th scope="col" className="num">Error MW</th>
         </tr>
       </thead>
       <tbody>

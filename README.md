@@ -36,6 +36,20 @@ Scope, as given in the brief:
 - The same metrics are broken down by hour of day and by delivery day, with an error histogram.
 - An **error-vs-lead-time curve** (0–48 h) shows how much accuracy is lost by deciding a day early.
 
+### Usability and accessibility
+
+- Each page has a "how to read this" guide with a glossary (P10/P50, MAE, bias, lead time). It stays open until the
+  user closes it.
+- A plain-language **recommendation** box ("plan on X GW, secure Y GW more") and auto-generated **key findings** sit
+  above the charts.
+- Every chart has a text summary for screen readers and a "Show as table" toggle with the underlying numbers.
+- Tabs follow the WAI-ARIA tabs pattern (arrow keys, Home/End). There is a skip link, visible focus rings, labelled
+  form controls and `role="alert"` errors.
+- Series are told apart by line style (dashed P50 and bias lines) as well as colour.
+- Light and dark themes are both checked with axe-core against WCAG 2.1 AA, with zero violations. The layout is
+  responsive down to 360 px.
+- The current view is kept in the URL, so links can be shared.
+
 ### Headline findings (January 2026, 744 delivery hours, 09:20 gate)
 
 | Metric | Value |

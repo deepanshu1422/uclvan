@@ -5,11 +5,14 @@
   --surface-2: #f3f2ee;
   --text-1: #0b0b0b;
   --text-2: #52514e;
-  --text-muted: #898781;
+  --text-muted: #6b6a64;
   --grid: #e1e0d9;
   --axis: #c3c2b7;
   --border: rgba(11, 11, 11, 0.1);
-  --accent: #2a78d6;
+  --accent: #1f66bd;
+  --takeaway-bg: #ecf7f1;
+  --takeaway-border: #1baf7a;
+  --focus: #1f66bd;
   --series-actual: #2a78d6;
   --series-forecast: #eb6834;
   --series-p50: #1baf7a;
@@ -35,6 +38,10 @@
     --axis: #383835;
     --border: rgba(255, 255, 255, 0.1);
     --accent: #3987e5;
+    --text-muted: #a3a29b;
+    --takeaway-bg: #12261d;
+    --takeaway-border: #199e70;
+    --focus: #6aa8f0;
     --series-actual: #3987e5;
     --series-forecast: #d95926;
     --series-p50: #199e70;
@@ -53,6 +60,10 @@
   --axis: #383835;
   --border: rgba(255, 255, 255, 0.1);
   --accent: #3987e5;
+  --text-muted: #a3a29b;
+  --takeaway-bg: #12261d;
+  --takeaway-border: #199e70;
+  --focus: #6aa8f0;
   --series-actual: #3987e5;
   --series-forecast: #d95926;
   --series-p50: #199e70;
@@ -74,11 +85,17 @@ header.top {
 .brand h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
 .brand span { color: var(--text-2); font-size: 13px; }
 
-nav.tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 999px; }
-nav.tabs button {
-  border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: var(--text-2);
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin: 4px 0 16px; }
+.tabs button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  border: 1px solid var(--border); background: var(--surface); padding: 10px 14px; border-radius: var(--radius);
+  cursor: pointer; color: var(--text-2);
 }
-nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--text-1); box-shadow: 0 0 0 1px var(--border); font-weight: 600; }
+.tabs button:hover { border-color: var(--accent); }
+.tabs .tab-label { font-weight: 600; font-size: 15px; }
+.tabs .tab-hint { font-size: 13px; color: var(--text-muted); }
+.tabs button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); color: var(--text-1); }
+.tabs button[aria-selected="true"] .tab-label { color: var(--accent); }
 
 .filters {
   display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end;
@@ -146,3 +163,35 @@ footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
 footer a { color: inherit; }
 .theme-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 10px; cursor: pointer; font-size: 13px; }
 .top-right { display: flex; gap: 8px; align-items: center; }
+
+/* ---------- accessibility */
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+main:focus { outline: none; }
+.skip { position: absolute; left: 16px; top: -48px; background: var(--accent); color: #fff; padding: 8px 12px; border-radius: 8px; z-index: 10; }
+.skip:focus { top: 8px; }
+.status { color: var(--text-2); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- guidance */
+.takeaway {
+  background: var(--takeaway-bg); border: 1px solid var(--takeaway-border); border-left-width: 5px;
+  border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px;
+}
+.takeaway-title { font-weight: 650; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); margin-bottom: 4px; }
+.takeaway-body { font-size: 16px; }
+.takeaway-body p { margin: 0 0 6px; }
+.takeaway-body ul { margin: 0; padding-left: 20px; }
+.takeaway-body li { margin: 4px 0; }
+.takeaway-why { font-size: 14px; color: var(--text-2); }
+
+.explainer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; }
+.explainer summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: var(--accent); }
+.explainer-body { padding: 0 14px 12px; }
+.steps { margin: 0 0 12px; padding-left: 20px; }
+.steps li { margin: 4px 0; color: var(--text-2); }
+.steps b { color: var(--text-1); }
+.glossary { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 20px; margin: 0; font-size: 13px; }
+.glossary dt { font-weight: 600; }
+.glossary dd { margin: 0; color: var(--text-2); }
+
+.legend i.dash { height: 0; background: none !important; border-top: 2px dashed; }
