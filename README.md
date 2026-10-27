@@ -4,8 +4,8 @@ A web app for a UK utility's day-ahead power desk. It shows the GB national wind
 decision time and measures how accurate those forecasts were. The desk can then size thermal / day-ahead purchases
 against a quantified wind range instead of a single number.
 
-**Live app:** VERCEL_URL_PLACEHOLDER
-**API docs (OpenAPI):** VERCEL_URL_PLACEHOLDER/api/docs
+**Live app:** https://uclvan.vercel.app
+**API docs (OpenAPI):** https://uclvan.vercel.app/api/docs
 
 Scope, as given in the brief:
 

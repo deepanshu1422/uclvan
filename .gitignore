@@ -10,3 +10,5 @@ frontend/dist/
 .DS_Store
 .idea/
 .ipynb_checkpoints/
+.env*
+.playwright-mcp/
